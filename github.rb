@@ -70,6 +70,11 @@ generated_csv = CSV.generate(headers: header, write_headers: true, encoding: Enc
   pr_stats_list.each { |pr_stats| csv << pr_stats.values }
 end
 
-File.open("#{CREATED_FROM}_#{CREATED_TO}.csv", "w") do |file|
-  file.write(generated_csv)
+begin
+  File.open("artifacts/#{CREATED_FROM}_#{CREATED_TO}.csv", "w") do |file|
+    file.write(generated_csv)
+  end
+rescue Errno::ENOENT
+  Dir.mkdir("artifacts")
+  retry
 end
