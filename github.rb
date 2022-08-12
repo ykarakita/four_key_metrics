@@ -56,11 +56,11 @@ pr_stats_list.each do |pr_stats|
   printf "."
   # 計測対象の PR に紐づく commits を取得
   commits = client.pull_request_commits(REPO, pr_stats.pr_number)
+  first_commit = commits.first.commit
 
   # 計測対象の PR タイトル、最初のコミット日時、PR 作成者を格納
-  pr_stats.first_commit_datetime = commits.first.commit.committer.date
-  pr_stats.first_commit_user_name = commits.first.commit.author.name
-  pr_stats
+  pr_stats.first_commit_datetime = first_commit.committer.date
+  pr_stats.first_commit_user_name = first_commit.author.name
 end
 
 header = PullRequestStats.members.map(&:to_s)
