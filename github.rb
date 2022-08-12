@@ -69,7 +69,8 @@ pr_stats_list.delete_if { _1.first_commit_user_name.include?("dependabot") }
 pr_stats_list.each do |pr_stats|
   before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
   after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
-  pr_stats.lead_time = before_merge_into_staging_time + after_merged_into_staging_time
+  lead_time_sec = before_merge_into_staging_time + after_merged_into_staging_time
+  pr_stats.lead_time = lead_time_sec / 60 / 60 / 24
 end
 
 header = PullRequestStats.members.map(&:to_s)
@@ -93,4 +94,4 @@ total_lead_time = pr_stats_list.map(&:lead_time).sum
 puts
 puts "#{CREATED_FROM} 〜 #{CREATED_TO} の capability"
 puts "デプロイ回数: #{merged_into_master_issues.items.size}回"
-puts "変更リードタイム（CI時間を除く）: #{((total_lead_time / 60 / 60 / 24) / pr_stats_list.size).round(3)}日"
+puts "変更リードタイム（CI時間を除く）: #{(total_lead_time / pr_stats_list.size).round(3)}日"
