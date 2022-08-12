@@ -7,7 +7,7 @@ TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 CREATED_FROM = "2022-01-01"
 CREATED_TO = "2022-06-30"
 
-PullRequestStats = Struct.new(:pr_number, :pr_title, :first_commit_datetime, :merged_into_staging_datetime, :merged_into_master_datetime, :first_commit_user_name, keyword_init: true)
+PullRequestStats = Struct.new(:pr_number, :pr_title, :first_commit_datetime, :merged_into_staging_datetime, :merged_into_master_datetime, :first_commit_user_name, :lead_time, keyword_init: true)
 
 def client
   Octokit::Client.new(access_token: ENV['ACCESS_TOKEN'], auto_paginate: true)
@@ -79,12 +79,14 @@ rescue Errno::ENOENT
   retry
 end
 
-total_lead_time = pr_stats_list.inject(0) do |result , pr_stats|
+# 各 PR のリードタイムを計測
+pr_stats_list.each do |pr_stats|
   before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
   after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
-  result += before_merge_into_staging_time + after_merged_into_staging_time
-  result
+  pr_stats.lead_time = before_merge_into_staging_time + after_merged_into_staging_time
 end
+
+total_lead_time = pr_stats_list.map(&:lead_time).sum
 
 puts
 puts "#{CREATED_FROM} 〜 #{CREATED_TO} の capability"
