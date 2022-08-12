@@ -63,6 +63,15 @@ pr_stats_list.each do |pr_stats|
   pr_stats.first_commit_user_name = first_commit.author.name
 end
 
+pr_stats_list.delete_if { _1.first_commit_user_name.include?("dependabot") }
+
+# 各 PR のリードタイムを計測
+pr_stats_list.each do |pr_stats|
+  before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
+  after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
+  pr_stats.lead_time = before_merge_into_staging_time + after_merged_into_staging_time
+end
+
 header = PullRequestStats.members.map(&:to_s)
 generated_csv = CSV.generate(headers: header, write_headers: true, encoding: Encoding::UTF_8) do |csv|
   pr_stats_list.each do |pr_stats|
@@ -77,13 +86,6 @@ begin
 rescue Errno::ENOENT
   Dir.mkdir("artifacts")
   retry
-end
-
-# 各 PR のリードタイムを計測
-pr_stats_list.each do |pr_stats|
-  before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
-  after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
-  pr_stats.lead_time = before_merge_into_staging_time + after_merged_into_staging_time
 end
 
 total_lead_time = pr_stats_list.map(&:lead_time).sum
