@@ -7,7 +7,7 @@ TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 CREATED_FROM = "2022-01-01"
 CREATED_TO = "2022-06-30"
 
-PullRequestStats = Struct.new(:pr_number, :pr_title, :first_commit_datetime, :merged_into_staging_datetime, :merged_into_master_datetime, :pr_created_user_name, keyword_init: true)
+PullRequestStats = Struct.new(:pr_number, :pr_title, :first_commit_datetime, :merged_into_staging_datetime, :merged_into_master_datetime, :first_commit_user_name, keyword_init: true)
 
 def client
   Octokit::Client.new(access_token: ENV['ACCESS_TOKEN'], auto_paginate: true)
@@ -44,7 +44,8 @@ merged_into_master_issues.items.each do |issue|
 
     pr_stats_list << PullRequestStats.new(pr_number: pull_request_number,
                                           merged_into_staging_datetime: commit.commit.committer.date,
-                                          merged_into_master_datetime: merged_date)
+                                          merged_into_master_datetime: merged_date,
+                                          pr_title: commit_message.split(/\n/).last)
   end
 end
 
@@ -53,15 +54,12 @@ puts "計測対象の PR の情報を取得します"
 
 pr_stats_list.each do |pr_stats|
   printf "."
-  # 計測対象の PR の情報を取得
-  pr = client.pull_request(REPO, pr_stats.pr_number)
   # 計測対象の PR に紐づく commits を取得
   commits = client.pull_request_commits(REPO, pr_stats.pr_number)
 
   # 計測対象の PR タイトル、最初のコミット日時、PR 作成者を格納
-  pr_stats.pr_title = pr.title
   pr_stats.first_commit_datetime = commits.first.commit.committer.date
-  pr_stats.pr_created_user_name = pr.user.login
+  pr_stats.first_commit_user_name = commits.first.commit.author.name
   pr_stats
 end
 
