@@ -23,10 +23,10 @@ puts "期間内に master にマージされたデプロイ PR 一覧を取得�
 
 # 期間内に master にマージされたデプロイ PR 一覧を取得
 query = "repo:#{REPO} state:closed base:master created:#{CREATED_FROM}..#{CREATED_TO}"
-issues = client.search_issues(query, per_page: 100)
+merged_into_master_issues = client.search_issues(query, per_page: 100)
 
 pr_stats_list = []
-issues.items.each do |issue|
+merged_into_master_issues.items.each do |issue|
   printf "."
   merged_date = issue.pull_request.merged_at
   next unless merged_date
@@ -43,8 +43,8 @@ issues.items.each do |issue|
     next unless pull_request_number
 
     pr_stats_list << PullRequestStats.new(pr_number: pull_request_number,
-                                          merged_into_staging_datetime: format_datetime(commit.commit.committer.date),
-                                          merged_into_master_datetime: format_datetime(merged_date))
+                                          merged_into_staging_datetime: commit.commit.committer.date,
+                                          merged_into_master_datetime: merged_date)
   end
 end
 
@@ -60,14 +60,16 @@ pr_stats_list.each do |pr_stats|
 
   # 計測対象の PR タイトル、最初のコミット日時、PR 作成者を格納
   pr_stats.pr_title = pr.title
-  pr_stats.first_commit_datetime = format_datetime(commits.first.commit.committer.date)
+  pr_stats.first_commit_datetime = commits.first.commit.committer.date
   pr_stats.pr_created_user_name = pr.user.login
   pr_stats
 end
 
 header = PullRequestStats.members.map(&:to_s)
 generated_csv = CSV.generate(headers: header, write_headers: true, encoding: Encoding::UTF_8) do |csv|
-  pr_stats_list.each { |pr_stats| csv << pr_stats.values }
+  pr_stats_list.each do |pr_stats|
+    csv << pr_stats.map { _1.is_a?(Time) ? format_datetime(_1) : _1 }
+  end
 end
 
 begin
@@ -78,3 +80,15 @@ rescue Errno::ENOENT
   Dir.mkdir("artifacts")
   retry
 end
+
+total_lead_time = pr_stats_list.inject(0) do |result , pr_stats|
+  before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
+  after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
+  result += before_merge_into_staging_time + after_merged_into_staging_time
+  result
+end
+
+puts
+puts "#{CREATED_FROM} 〜 #{CREATED_TO} の capability"
+puts "デプロイ回数: #{merged_into_master_issues.items.size}回"
+puts "変更リードタイム（CI時間を除く）: #{((total_lead_time / 60 / 60 / 24) / pr_stats_list.size).round(3)}日"
