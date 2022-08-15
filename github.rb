@@ -91,7 +91,12 @@ end
 
 total_lead_time = pr_stats_list.map(&:lead_time).sum
 
+# ここでは営業日を大まかに算出し計算に使います
+# 1年の中で休日が120日、平日が245日。そこから 245 / 365 = 0.67 としています
+business_days = ((Time.parse(CREATED_TO) - Time.parse(CREATED_FROM)) / 60 / 60 / 24 * 0.67).to_i
+
 puts
 puts "#{CREATED_FROM} 〜 #{CREATED_TO} の capability"
-puts "デプロイ回数: #{merged_into_master_issues.items.size}回"
+puts "総デプロイ回数: #{merged_into_master_issues.items.size}回"
+puts "平均デプロイ回数: #{((merged_into_master_issues.items.size).to_f / (business_days).to_f).round(3)}回/日"
 puts "変更リードタイム（CI時間を除く）: #{(total_lead_time / pr_stats_list.size).round(3)}日"
