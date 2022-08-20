@@ -11,6 +11,7 @@ class Github
     @pr_stats_list = []
   end
 
+  # @return Integer
   def get_total_lead_time(from:, to:)
     get_merged_into_master_issues(from:, to:)
 
@@ -53,8 +54,7 @@ class Github
       before_merge_into_staging_time = pr_stats.merged_into_staging_datetime - pr_stats.first_commit_datetime
       after_merged_into_staging_time = pr_stats.merged_into_master_datetime - pr_stats.merged_into_staging_datetime
       lead_time_sec = before_merge_into_staging_time + after_merged_into_staging_time
-      lead_time_days = lead_time_sec.to_f / 60 / 60 / 24
-      pr_stats.lead_time = lead_time_days.round(3)
+      pr_stats.lead_time = lead_time_sec
     end
 
     pr_stats_list.filter { !_1.first_commit_user_name.include?("dependabot") || !_1.first_commit_user_name.include?("renovate") }
