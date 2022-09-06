@@ -6,7 +6,7 @@ require "./csv_generator.rb"
 
 REPO = ENV["REPO"]
 today = Date.today
-FROM = ENV["FROM"] ? Date.parse(ENV["FROM"]) : today - 14
+FROM = ENV["FROM"] ? Date.parse(ENV["FROM"]) : today - 7
 TO = ENV["TO"] ? Date.parse(ENV["TO"]) : today
 
 # GitHub からメトリクスを取得します
